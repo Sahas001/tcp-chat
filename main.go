@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
 	"net"
-	"os"
 )
 
 type Server struct {
@@ -31,39 +28,47 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	var roomId RoomId = 1
+
+	room := Room{
+		RoomID:   roomId,
+		RoomName: "General",
+	}
+
+	for {
+		conn, err := server.Listener.Accept()
+		if err != nil {
+			log.Println("Error accepting connection:", err)
+			continue
+		}
+		user := User{
+			Addr:   conn.RemoteAddr(),
+			conn:   &conn,
+			RoomID: roomId,
+			Room:   &room,
+		}
+
+		room.AddUser(user)
+
+		go HandleIncomingConnection(user)
+	}
 }
 
-//TODO: Refactor these function and complete main function.
-
-func HandleIncomingConnection(conn net.Conn) {
-	defer conn.Close()
-	_, err := conn.Write([]byte("Connected to Server Successfully!\n"))
-	if err != nil {
-		log.Println("Failed writing")
-	}
+func HandleIncomingConnection(user User) {
+	conn := *user.GetConnection()
 	for {
-		buf := make([]byte, 64)
-
+		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Println("Connection Abrupted")
-			break
+			log.Println("Error reading from connection:", err)
 		}
-		fmt.Printf("Client: %s\n", string(buf[:n]))
-	}
-}
+		msg := string(buf[:n])
+		room := user.GetRoom()
 
-func HandleOutgoingConnection(conn net.Conn) {
-	defer conn.Close()
-	for {
-		reader := bufio.NewReader(os.Stdin)
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			log.Println("Error while reading the line")
+		errC := room.BroadcastMessage(msg, conn.RemoteAddr().String())
+		if len(errC.ErrMap) != 0 {
+			log.Println("Some users could not receive the message")
 		}
-		_, err = conn.Write(fmt.Appendf(nil, "Server: %s", line))
-		if err != nil {
-			log.Printf("Connection Abrupted: %s\n", err.Error())
-		}
+
 	}
 }
