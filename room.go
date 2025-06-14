@@ -40,7 +40,7 @@ func (r *Room) AddUser(user User) bool {
 	return true
 }
 
-func (r *Room) BroadcastMessage(msg string, fromUser string) *ErrorChan {
+func (r *Room) BroadcastMessage(msg string, fromUser string, username string) *ErrorChan {
 	errChan := ErrorChan{
 		ErrMap: make(map[string]error),
 	}
@@ -54,7 +54,7 @@ func (r *Room) BroadcastMessage(msg string, fromUser string) *ErrorChan {
 				addstr := strings.Split(fromUser, ":")
 
 				_, err := conn.Write([]byte(
-					"/" + addstr[len(addstr)-1] + ": " + msg + "\n",
+					"/" + addstr[len(addstr)-1] + "/" + username + ": " + msg + "\n",
 				))
 				if err != nil {
 					errChan.AddNewError(conn.RemoteAddr().String(), err)
