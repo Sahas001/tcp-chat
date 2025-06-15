@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"net"
 	"strings"
 	"sync"
 )
@@ -105,4 +107,25 @@ func RemoveUserFromRoom(user User) {
 		}
 	}
 	room.Users = newUsers
+}
+
+func ListRooms(conn net.Conn) {
+	roomMu.Lock()
+	defer roomMu.Unlock()
+
+	if len(roomRegistry) == 0 {
+		conn.Write([]byte("There is no active room present."))
+		return
+	}
+
+	conn.Write([]byte("Active Rooms.\n"))
+	for _, room := range roomRegistry {
+		line := fmt.Sprintf(
+			"- %s (ID: %d, Users: %d)\n",
+			room.RoomName,
+			room.RoomID,
+			len(room.Users),
+		)
+		conn.Write([]byte(line))
+	}
 }

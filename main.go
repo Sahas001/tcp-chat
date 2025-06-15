@@ -31,12 +31,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// var roomId RoomId = 1
-	//
-	// room := Room{
-	// 	RoomID:   roomId,
-	// 	RoomName: "General",
-	// }
 
 	for {
 
@@ -81,6 +75,11 @@ func HandleIncomingConnection(user User) {
 		}
 		msg := string(buf[:n])
 		room := user.GetRoom()
+
+		if strings.TrimSpace(msg) == "/room" {
+			ListRooms(conn)
+			continue
+		}
 
 		errC := room.BroadcastMessage(msg, conn.RemoteAddr().String(), user.Username)
 		if len(errC.ErrMap) != 0 {
