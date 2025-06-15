@@ -7,6 +7,11 @@ import (
 
 type RoomId int
 
+var (
+	roomRegistry = make(map[RoomId]*Room)
+	roomMu       sync.Mutex
+)
+
 type Room struct {
 	RoomID   RoomId
 	Users    []User
@@ -40,6 +45,24 @@ func (r *Room) AddUser(user User) bool {
 	return true
 }
 
+func GetCreateRoom(id RoomId) *Room {
+	roomMu.Lock()
+	defer roomMu.Unlock()
+
+	if room, exists := roomRegistry[id]; exists {
+		return room
+	}
+
+	newRoom := &Room{
+		RoomID:   id,
+		Users:    []User{},
+		RoomName: "General",
+	}
+
+	roomRegistry[id] = newRoom
+	return newRoom
+}
+
 func (r *Room) BroadcastMessage(msg string, fromUser string, username string) *ErrorChan {
 	errChan := ErrorChan{
 		ErrMap: make(map[string]error),
@@ -67,4 +90,19 @@ func (r *Room) BroadcastMessage(msg string, fromUser string, username string) *E
 
 	wg.Wait()
 	return &errChan
+}
+
+func RemoveUserFromRoom(user User) {
+	roomMu.Lock()
+	defer roomMu.Unlock()
+
+	room := roomRegistry[user.RoomID]
+	newUsers := []User{}
+
+	for _, u := range room.Users {
+		if u.Addr.String() != user.Addr.String() {
+			newUsers = append(newUsers, u)
+		}
+	}
+	room.Users = newUsers
 }

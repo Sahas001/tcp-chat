@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 )
 
 type Server struct {
@@ -28,24 +31,33 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	var roomId RoomId = 1
-
-	room := Room{
-		RoomID:   roomId,
-		RoomName: "General",
-	}
+	// var roomId RoomId = 1
+	//
+	// room := Room{
+	// 	RoomID:   roomId,
+	// 	RoomName: "General",
+	// }
 
 	for {
+
 		conn, err := server.Listener.Accept()
 		if err != nil {
 			log.Println("Error accepting connection:", err)
 			continue
 		}
+
+		conn.Write([]byte("Enter room number:... "))
+		roomStr, _ := bufio.NewReader(conn).ReadString('\n')
+		roomStr = strings.TrimSpace(roomStr)
+
+		roomIdInt, _ := strconv.Atoi(roomStr)
+		room := GetCreateRoom(RoomId(roomIdInt))
+
 		user := User{
 			Addr:   conn.RemoteAddr(),
 			conn:   &conn,
-			RoomID: roomId,
-			Room:   &room,
+			RoomID: RoomId(roomIdInt),
+			Room:   room,
 		}
 		user.SetUsername()
 
@@ -57,11 +69,15 @@ func main() {
 
 func HandleIncomingConnection(user User) {
 	conn := *user.GetConnection()
+	defer conn.Close()
+	user.GetRoom()
 	for {
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
 		if err != nil {
-			log.Println("Error reading from connection:", err)
+			log.Println("User disconnected:", user.Username)
+			RemoveUserFromRoom(user)
+			break
 		}
 		msg := string(buf[:n])
 		room := user.GetRoom()
