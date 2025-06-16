@@ -107,6 +107,10 @@ func RemoveUserFromRoom(user User) {
 		}
 	}
 	room.Users = newUsers
+
+	if len(room.Users) == 0 {
+		delete(roomRegistry, user.RoomID)
+	}
 }
 
 func ListRooms(conn net.Conn) {
@@ -118,7 +122,7 @@ func ListRooms(conn net.Conn) {
 		return
 	}
 
-	conn.Write([]byte("Active Rooms.\n"))
+	conn.Write([]byte("\033[1;34mActive Rooms:\033[0m\n")) // Blue bold title
 	for _, room := range roomRegistry {
 		line := fmt.Sprintf(
 			"- %s (ID: %d, Users: %d)\n",
@@ -127,5 +131,13 @@ func ListRooms(conn net.Conn) {
 			len(room.Users),
 		)
 		conn.Write([]byte(line))
+	}
+}
+
+func (r *Room) ListUsers(conn net.Conn) {
+	users := r.Users
+	for i, user := range users {
+		usernames := fmt.Sprintf("%d. %s\n", i+1, user.Username)
+		conn.Write([]byte(usernames))
 	}
 }

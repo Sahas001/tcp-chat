@@ -76,9 +76,13 @@ func HandleIncomingConnection(user User) {
 		msg := string(buf[:n])
 		room := user.GetRoom()
 
-		if strings.TrimSpace(msg) == "/room" {
+		trimmedMsg := strings.TrimSpace(msg)
+
+		if trimmedMsg == "/room" {
 			ListRooms(conn)
 			continue
+		} else if trimmedMsg == "/users" {
+			user.Room.ListUsers(conn)
 		}
 
 		errC := room.BroadcastMessage(msg, conn.RemoteAddr().String(), user.Username)
