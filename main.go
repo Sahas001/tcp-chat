@@ -52,6 +52,7 @@ func main() {
 			conn:   &conn,
 			RoomID: RoomId(roomIdInt),
 			Room:   room,
+			Color:  "\033[32m",
 		}
 		user.SetUsername()
 
@@ -85,7 +86,7 @@ func HandleIncomingConnection(user User) {
 			user.Room.ListUsers(conn)
 		}
 
-		errC := room.BroadcastMessage(msg, conn.RemoteAddr().String(), user.Username)
+		errC := room.BroadcastMessage(msg, conn.RemoteAddr().String(), user.Username, user.Color)
 		if len(errC.ErrMap) != 0 {
 			log.Println("Some users could not receive the message")
 		}

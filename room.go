@@ -12,6 +12,7 @@ type RoomId int
 var (
 	roomRegistry = make(map[RoomId]*Room)
 	roomMu       sync.Mutex
+	reset        = "\033[0m" // Reset color
 )
 
 type Room struct {
@@ -65,7 +66,7 @@ func GetCreateRoom(id RoomId) *Room {
 	return newRoom
 }
 
-func (r *Room) BroadcastMessage(msg string, fromUser string, username string) *ErrorChan {
+func (r *Room) BroadcastMessage(msg string, fromUser string, username string, color string) *ErrorChan {
 	errChan := ErrorChan{
 		ErrMap: make(map[string]error),
 	}
@@ -78,8 +79,13 @@ func (r *Room) BroadcastMessage(msg string, fromUser string, username string) *E
 				conn := *usr.GetConnection()
 				addstr := strings.Split(fromUser, ":")
 
+				msgLine := fmt.Sprintf(
+					"%s/%s %s%s%s: %s\n",
+					addstr[len(addstr)-1], reset, color, username, reset, msg,
+				)
 				_, err := conn.Write([]byte(
-					"/" + addstr[len(addstr)-1] + "/" + username + ": " + msg + "\n",
+					// "/" + addstr[len(addstr)-1] + "/" + username + ": " + msg + "\n",
+					msgLine,
 				))
 				if err != nil {
 					errChan.AddNewError(conn.RemoteAddr().String(), err)

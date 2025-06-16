@@ -11,6 +11,7 @@ type User struct {
 	RoomID   RoomId
 	conn     *net.Conn
 	Room     *Room
+	Color    string
 }
 
 func (u *User) GetConnection() *net.Conn {
