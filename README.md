@@ -11,9 +11,9 @@
 
 ## Working On
 
-- Tag users with username in a room.
-- Color coded name `red` `green` `yellow`.
-- Key `secret` to enter a room.
+- [ ] Tag users with username in a room.
+- [x] Color coded name `red` `green` `yellow`.
+- [ ] Key `secret` to enter a room.
 
 
 

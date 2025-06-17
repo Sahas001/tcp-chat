@@ -47,12 +47,11 @@ func main() {
 		roomIdInt, _ := strconv.Atoi(roomStr)
 		room := GetCreateRoom(RoomId(roomIdInt))
 
-		user := User{
+		user := &User{
 			Addr:   conn.RemoteAddr(),
 			conn:   &conn,
 			RoomID: RoomId(roomIdInt),
 			Room:   room,
-			Color:  "\033[32m",
 		}
 		user.SetUsername()
 
@@ -62,7 +61,7 @@ func main() {
 	}
 }
 
-func HandleIncomingConnection(user User) {
+func HandleIncomingConnection(user *User) {
 	conn := *user.GetConnection()
 	defer conn.Close()
 	user.GetRoom()

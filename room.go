@@ -13,11 +13,17 @@ var (
 	roomRegistry = make(map[RoomId]*Room)
 	roomMu       sync.Mutex
 	reset        = "\033[0m" // Reset color
+	roomColors   = []string{
+		"\033[31m", // Red
+		"\033[32m", // Green
+		"\033[33m", // Yellow
+		"\033[0m",  // Reset color
+	}
 )
 
 type Room struct {
 	RoomID   RoomId
-	Users    []User
+	Users    []*User
 	RoomName string
 }
 
@@ -33,11 +39,11 @@ func (e *ErrorChan) AddNewError(routineAddr string, err error) {
 	e.ErrMap[routineAddr] = err
 }
 
-func (r *Room) GetUsers() []User {
+func (r *Room) GetUsers() []*User {
 	return r.Users
 }
 
-func (r *Room) AddUser(user User) bool {
+func (r *Room) AddUser(user *User) bool {
 	users := r.GetUsers()
 	for _, roomUser := range users {
 		if roomUser.Addr.String() == user.Addr.String() {
@@ -45,6 +51,7 @@ func (r *Room) AddUser(user User) bool {
 		}
 	}
 	r.Users = append(r.Users, user)
+	r.AssignColors()
 	return true
 }
 
@@ -58,7 +65,7 @@ func GetCreateRoom(id RoomId) *Room {
 
 	newRoom := &Room{
 		RoomID:   id,
-		Users:    []User{},
+		Users:    []*User{},
 		RoomName: "General",
 	}
 
@@ -100,12 +107,12 @@ func (r *Room) BroadcastMessage(msg string, fromUser string, username string, co
 	return &errChan
 }
 
-func RemoveUserFromRoom(user User) {
+func RemoveUserFromRoom(user *User) {
 	roomMu.Lock()
 	defer roomMu.Unlock()
 
 	room := roomRegistry[user.RoomID]
-	newUsers := []User{}
+	newUsers := []*User{}
 
 	for _, u := range room.Users {
 		if u.Addr.String() != user.Addr.String() {
@@ -116,6 +123,8 @@ func RemoveUserFromRoom(user User) {
 
 	if len(room.Users) == 0 {
 		delete(roomRegistry, user.RoomID)
+	} else {
+		room.AssignColors()
 	}
 }
 
@@ -137,6 +146,16 @@ func ListRooms(conn net.Conn) {
 			len(room.Users),
 		)
 		conn.Write([]byte(line))
+	}
+}
+
+func (r *Room) AssignColors() {
+	for i := range r.Users {
+		if i < len(roomColors) {
+			r.Users[i].Color = roomColors[i]
+		} else {
+			r.Users[i].Color = "" // Use last color if more users than colors
+		}
 	}
 }
 
