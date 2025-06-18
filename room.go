@@ -76,7 +76,10 @@ func GetCreateRoom(id RoomId) *Room {
 	return newRoom
 }
 
-func (r *Room) BroadcastMessage(msg string, fromUser string, username string, color string) *ErrorChan {
+func (r *Room) BroadcastMessage(msg string, fromUser string, user *User) *ErrorChan {
+	username := user.Username
+	color := user.Color
+	userConn := *user.conn
 	errChan := ErrorChan{
 		ErrMap: make(map[string]error),
 	}
@@ -104,7 +107,9 @@ func (r *Room) BroadcastMessage(msg string, fromUser string, username string, co
 
 			if isDM {
 				msg = strings.TrimPrefix(msg, "/dm ")
-				msgLine = fmt.Sprintf("%s/%s %s%s%s (DM): %s\n", addstr[len(addstr)-1], reset, color, username, reset, msg)
+				msgLine = fmt.Sprintf("%s/%s %s%s%s (DM): %s\n", addstr[len(addstr)-1], reset, color, user.Username, reset, msg)
+				userConn.Write([]byte("✔️ Message sent to: " + usr.Username + "\n"))
+				// userConn.Write([]byte("✔️ Message sent to: " + strings.Join(dmTargets, ", ") + "\n"))
 			} else {
 
 				highlightedMsg := msg
