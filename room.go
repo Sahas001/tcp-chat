@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -13,6 +14,8 @@ var (
 	roomRegistry = make(map[RoomId]*Room)
 	roomMu       sync.Mutex
 	reset        = "\033[0m" // Reset color
+	bold         = "\033[1m"
+	mentionColor = "\033[96m"
 	roomColors   = []string{
 		"\033[31m", // Red
 		"\033[32m", // Green
@@ -78,33 +81,67 @@ func (r *Room) BroadcastMessage(msg string, fromUser string, username string, co
 		ErrMap: make(map[string]error),
 	}
 
+	isDM := strings.HasPrefix(msg, "/dm")
+	dmTargets := ExtractMentions(msg)
+
 	var wg sync.WaitGroup
 	for _, usr := range r.GetUsers() {
-		if usr.Addr.String() != fromUser {
-			wg.Add(1)
-			go func() {
-				conn := *usr.GetConnection()
-				addstr := strings.Split(fromUser, ":")
-
-				msgLine := fmt.Sprintf(
-					"%s/%s %s%s%s: %s\n",
-					addstr[len(addstr)-1], reset, color, username, reset, msg,
-				)
-				_, err := conn.Write([]byte(
-					// "/" + addstr[len(addstr)-1] + "/" + username + ": " + msg + "\n",
-					msgLine,
-				))
-				if err != nil {
-					errChan.AddNewError(conn.RemoteAddr().String(), err)
-				}
-				wg.Done()
-			}()
-
+		if usr.Addr.String() == fromUser {
+			continue
 		}
+
+		if isDM && !InList(usr.Username, dmTargets) {
+			continue
+		}
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			conn := *usr.GetConnection()
+			addstr := strings.Split(fromUser, ":")
+
+			var msgLine string
+
+			if isDM {
+				msg = strings.TrimPrefix(msg, "/dm ")
+				msgLine = fmt.Sprintf("%s/%s %s%s%s (DM): %s\n", addstr[len(addstr)-1], reset, color, username, reset, msg)
+			} else {
+
+				highlightedMsg := msg
+
+				for _, name := range dmTargets {
+					if name == usr.Username {
+						highlightedMsg = strings.ReplaceAll(
+							highlightedMsg,
+							"@"+name,
+							bold+mentionColor+"@"+name+reset,
+						)
+						highlightedMsg = "\a" + highlightedMsg
+					}
+				}
+
+				msgLine = fmt.Sprintf(
+					"%s/%s %s%s%s: %s\n",
+					addstr[len(addstr)-1], reset, color, username, reset, highlightedMsg,
+				)
+			}
+			_, err := conn.Write([]byte(
+				// "/" + addstr[len(addstr)-1] + "/" + username + ": " + msg + "\n",
+				msgLine,
+			))
+			if err != nil {
+				errChan.AddNewError(conn.RemoteAddr().String(), err)
+			}
+		}()
+
 	}
 
 	wg.Wait()
 	return &errChan
+}
+
+func InList(name string, list []string) bool {
+	return slices.Contains(list, name)
 }
 
 func RemoveUserFromRoom(user *User) {
