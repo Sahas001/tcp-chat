@@ -15,7 +15,7 @@
 - [ ] Key `secret` to enter a room.
 - [x] Tag users with username in a room `@<username>`.
 - [x] Message with tag `/dm` at the beginning and `@<username>` within to send direct message.
-- [x] Multiple mentions for multi .
+- [x] Multiple mentions for multi DM.
 
 
 
