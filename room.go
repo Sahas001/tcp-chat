@@ -28,6 +28,7 @@ type Room struct {
 	RoomID   RoomId
 	Users    []*User
 	RoomName string
+	Secret   string
 }
 
 type ErrorChan struct {
@@ -58,22 +59,26 @@ func (r *Room) AddUser(user *User) bool {
 	return true
 }
 
-func GetCreateRoom(id RoomId) *Room {
+func GetCreateRoom(id RoomId, secret string) (*Room, error) {
 	roomMu.Lock()
 	defer roomMu.Unlock()
 
 	if room, exists := roomRegistry[id]; exists {
-		return room
+		if room.Secret != secret {
+			return nil, fmt.Errorf("wrong secret key for the room %d", id)
+		}
+		return room, nil
 	}
 
 	newRoom := &Room{
 		RoomID:   id,
 		Users:    []*User{},
 		RoomName: "General",
+		Secret:   secret,
 	}
 
 	roomRegistry[id] = newRoom
-	return newRoom
+	return newRoom, nil
 }
 
 func (r *Room) BroadcastMessage(msg string, fromUser string, user *User) *ErrorChan {

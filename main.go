@@ -40,12 +40,28 @@ func main() {
 			continue
 		}
 
+		reader := bufio.NewReader(conn)
+
 		conn.Write([]byte("Enter room number:... "))
-		roomStr, _ := bufio.NewReader(conn).ReadString('\n')
+		roomStr, _ := reader.ReadString('\n')
 		roomStr = strings.TrimSpace(roomStr)
 
-		roomIdInt, _ := strconv.Atoi(roomStr)
-		room := GetCreateRoom(RoomId(roomIdInt))
+		conn.Write([]byte("Enter room secret:..."))
+		secret, _ := reader.ReadString('\n')
+		secret = strings.TrimSpace(secret)
+
+		roomIdInt, err := strconv.Atoi(roomStr)
+		if err != nil {
+			conn.Write([]byte("Error: Invalid room number\n"))
+			conn.Close()
+			continue
+		}
+		room, err := GetCreateRoom(RoomId(roomIdInt), secret)
+		if err != nil {
+			conn.Write([]byte("Error: " + err.Error() + "\n"))
+			conn.Close()
+			continue
+		}
 
 		user := &User{
 			Addr:   conn.RemoteAddr(),
